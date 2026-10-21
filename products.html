@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shop catalogue · iSAX Market</title>
+    <meta name="description" content="Browse the iSAX Market product catalogue.">
+    <link rel="icon" href="./assets/images/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./assets/css/styles.css">
+    <script type="module" src="./assets/js/products.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner page-width">
+        <a class="brand" href="./index.html" aria-label="iSAX Market home">
+          <img src="./assets/images/brand-mark.svg" width="34" height="34" alt="">
+          <span>iSAX <span class="brand-light">Market</span></span>
+        </a>
+        <nav class="main-nav" id="primary-navigation" aria-label="Main navigation">
+          <a class="nav-link" href="./index.html">Home</a>
+          <a class="nav-link nav-link-active" href="./products.html">Shop</a>
+          <a class="nav-link" href="./orders.html">Orders</a>
+        </nav>
+        <form class="header-search" id="search-form" role="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m16 16 4.2 4.2"/></svg>
+          <label class="visually-hidden" for="product-search">Search products</label>
+          <input id="product-search" type="search" placeholder="Search products" autocomplete="off">
+        </form>
+        <div class="header-actions">
+          <button class="theme-toggle icon-button" type="button" aria-label="Switch to dark theme">
+            <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+            <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"/></svg>
+          </button>
+          <a class="account-link" href="./orders.html">Account</a>
+          <a class="bag-link" href="./cart.html" aria-label="View shopping bag">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l1 13H4L5 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg>
+            <span>Bag <span class="bag-count">0</span></span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-shell page-width">
+      <section class="catalogue-page section-block">
+        <div class="collection-heading">
+          <div>
+            <p class="eyebrow">SHOP</p>
+            <h1>Collection</h1>
+          </div>
+          <label class="sort-control">
+            <span>Sort</span>
+            <select id="product-sort" aria-label="Sort products">
+              <option value="featured">Featured</option>
+              <option value="price-low">Price: low to high</option>
+              <option value="price-high">Price: high to low</option>
+              <option value="name">Name: A to Z</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="catalogue-controls">
+          <div class="category-filters" role="group" aria-label="Filter products by category">
+            <button class="category-filter is-active" type="button" data-category="All" aria-pressed="true">All items <span class="all-count">06</span></button>
+            <button class="category-filter" type="button" data-category="Tech" aria-pressed="false">Tech</button>
+            <button class="category-filter" type="button" data-category="Home" aria-pressed="false">Home</button>
+            <button class="category-filter" type="button" data-category="Style" aria-pressed="false">Style</button>
+          </div>
+          <p class="results-message" id="results-message" aria-live="polite">Showing 6 items</p>
+        </div>
+
+        <div class="product-grid" id="product-grid" aria-live="polite"></div>
+        <div class="empty-state" id="empty-state" hidden>
+          <h3>No products match</h3>
+          <p>Try a different search or filter.</p>
+          <button class="text-button reset-filters" type="button">Clear filters</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner page-width">
+        <a class="brand footer-brand" href="./index.html"><img src="./assets/images/brand-mark.svg" width="30" height="30" alt=""><span>iSAX <span class="brand-light">Market</span></span></a>
+        <p>Store contact details are placeholders until the business details are approved.</p>
+        <span>© <span id="current-year"></span> iSAX Market</span>
+      </div>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./assets/js/theme.js"></script>
+  </body>
+</html>

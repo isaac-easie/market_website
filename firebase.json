@@ -1,0 +1,31 @@
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22"
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "functions/**",
+      "prompt.md",
+      "README.md",
+      "firestore.rules",
+      "storage.rules",
+      "firestore.indexes.json",
+      "package*.json",
+      "service-account*.json",
+      "*-service-account.json"
+    ]
+  }
+}

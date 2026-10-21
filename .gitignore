@@ -1,0 +1,15 @@
+.DS_Store
+.vscode/
+.idea/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+service-account*.json
+*-service-account*.json

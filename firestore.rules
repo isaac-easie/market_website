@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    match /users/{uid} {
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['email', 'name', 'role', 'createdAt', 'updatedAt'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.role == 'customer'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+
+      match /carts/{cartId} {
+        allow read, write: if false;
+      }
+    }
+
+    match /products/{productId} {
+      allow get, list: if resource.data.isActive == true;
+      allow create, update, delete: if isOwner();
+    }
+
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if isOwner();
+    }
+
+    match /settings/{documentId} {
+      allow read: if documentId == 'public' || isOwner();
+      allow write: if isOwner();
+    }
+
+    match /orders/{orderId} {
+      allow get, list: if isOwner() || (signedIn() && resource.data.customerUid == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isOwner();
+      allow create, update, delete: if false;
+    }
+
+    match /paymentReferences/{referenceId} {
+      allow read, write: if false;
+    }
+
+    match /checkoutRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isOwner();
+      allow create, update, delete: if false;
+    }
+  }
+}
