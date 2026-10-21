@@ -1,4 +1,4 @@
-import { formatUGX, filterProducts, addToCart, loadCatalog, escapeHtml } from "./store-data.js";
+import { formatUGX, filterProducts, addToCart, loadCatalog, escapeHtml, getCategories } from "./store-data.js";
 
 const productGrid = document.querySelector("#product-grid");
 const searchForm = document.querySelector("#search-form");
@@ -6,7 +6,7 @@ const searchInput = document.querySelector("#product-search");
 const sortSelect = document.querySelector("#product-sort");
 const resultMessage = document.querySelector("#results-message");
 const emptyState = document.querySelector("#empty-state");
-const categoryButtons = [...document.querySelectorAll(".category-filter")];
+let categoryButtons = [...document.querySelectorAll(".category-filter")];
 const toast = document.querySelector("#toast");
 let activeCategory = "All";
 let toastTimer;
@@ -85,8 +85,35 @@ function selectCategory(category) {
   renderProducts();
 }
 
-for (const button of categoryButtons) {
-  button.addEventListener("click", () => selectCategory(button.dataset.category));
+function renderCategoryButtons() {
+  const container = document.querySelector(".category-filters");
+  const categories = getCategories(catalog);
+  container.replaceChildren();
+  const allButton = document.createElement("button");
+  allButton.className = "category-filter is-active";
+  allButton.type = "button";
+  allButton.dataset.category = "All";
+  allButton.setAttribute("aria-pressed", "true");
+  allButton.append("All items ");
+  const count = document.createElement("span");
+  count.className = "all-count";
+  count.textContent = String(catalog.length).padStart(2, "0");
+  allButton.append(count);
+  container.append(allButton);
+
+  for (const category of categories) {
+    const button = document.createElement("button");
+    button.className = "category-filter";
+    button.type = "button";
+    button.dataset.category = category;
+    button.setAttribute("aria-pressed", "false");
+    button.textContent = category;
+    container.append(button);
+  }
+  categoryButtons = [...container.querySelectorAll(".category-filter")];
+  categoryButtons.forEach((button) => {
+    button.addEventListener("click", () => selectCategory(button.dataset.category));
+  });
 }
 
 searchInput.addEventListener("input", renderProducts);
@@ -107,6 +134,13 @@ updateBagCount();
 loadCatalog().then((result) => {
   catalog = result.products;
   isSample = result.isSample;
+  if (!isSample) {
+    searchInput.placeholder = "Search products";
+    document.querySelector('label[for="product-search"]').textContent = "Search products";
+    document.querySelector(".category-filters").setAttribute("aria-label", "Filter products by category");
+    emptyState.querySelector("h3").textContent = "No products match";
+  }
+  renderCategoryButtons();
   renderProducts();
 }).catch((error) => {
   console.error("Catalogue load failed:", error);

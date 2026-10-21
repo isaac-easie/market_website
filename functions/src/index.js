@@ -145,9 +145,10 @@ exports.submitManualPaymentReference = onCall(callableOptions(), async (request)
   const referenceHash = createHash("sha256").update(reference.toUpperCase()).digest("hex");
   const referenceIndexRef = db.doc(`paymentReferences/${referenceHash}`);
   await db.runTransaction(async (transaction) => {
-    const [orderSnapshot, referenceIndexSnapshot] = await Promise.all([
+    const [orderSnapshot, referenceIndexSnapshot, paymentSnapshot] = await Promise.all([
       transaction.get(orderRef),
-      transaction.get(referenceIndexRef)
+      transaction.get(referenceIndexRef),
+      transaction.get(paymentRef)
     ]);
     if (!orderSnapshot.exists || orderSnapshot.get("customerUid") !== auth.uid) {
       throw new HttpsError("not-found", "Order not found.");
@@ -155,19 +156,21 @@ exports.submitManualPaymentReference = onCall(callableOptions(), async (request)
     if (orderSnapshot.get("paymentMethod") !== "mobile_money") {
       throw new HttpsError("failed-precondition", "This order does not use mobile money.");
     }
-    if (orderSnapshot.get("paymentStatus") !== "unpaid") {
+    if (!["unpaid", "failed"].includes(orderSnapshot.get("paymentStatus"))) {
       throw new HttpsError("failed-precondition", "A payment reference has already been submitted or reviewed.");
     }
     if (referenceIndexSnapshot.exists) {
       throw new HttpsError("already-exists", "That transaction reference has already been submitted.");
     }
-    transaction.create(paymentRef, {
+    const paymentData = {
       orderId,
       customerUid: auth.uid,
       reference,
       status: "pending_verification",
-      createdAt: FieldValue.serverTimestamp()
-    });
+      updatedAt: FieldValue.serverTimestamp()
+    };
+    if (paymentSnapshot.exists) transaction.update(paymentRef, paymentData);
+    else transaction.create(paymentRef, { ...paymentData, createdAt: FieldValue.serverTimestamp() });
     transaction.create(referenceIndexRef, {
       orderId,
       createdAt: FieldValue.serverTimestamp()
@@ -252,6 +255,9 @@ exports.updateOrderStatus = onCall(callableOptions(), async (request) => {
     let productRefs = [];
     let productSnapshots = [];
     if (nextStatus === "cancelled") {
+      if (!["unpaid", "failed"].includes(orderSnapshot.get("paymentStatus"))) {
+        throw new HttpsError("failed-precondition", "Orders with submitted or confirmed payments cannot be cancelled here.");
+      }
       productRefs = (orderSnapshot.get("items") || []).map((item) => db.doc(`products/${item.productId}`));
       for (const productRef of productRefs) productSnapshots.push(await transaction.get(productRef));
       productSnapshots.forEach((snapshot) => {

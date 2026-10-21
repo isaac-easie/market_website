@@ -1,6 +1,6 @@
 import { appCheckSiteKey, firebaseConfig, hasFirebaseConfig } from "./firebase-config.js";
 
-const SDK_VERSION = "11.10.0";
+export const FIREBASE_SDK_VERSION = "11.10.0";
 let firebasePromise;
 
 export async function getFirebase() {
@@ -10,15 +10,14 @@ export async function getFirebase() {
 
   if (!firebasePromise) {
     firebasePromise = (async () => {
-      const base = `https://www.gstatic.com/firebasejs/${SDK_VERSION}`;
-      const [appSdk, authSdk, firestoreSdk, functionsSdk, storageSdk, appCheckSdk, aiSdk] = await Promise.all([
+      const base = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}`;
+      const [appSdk, authSdk, firestoreSdk, functionsSdk, storageSdk, appCheckSdk] = await Promise.all([
         import(`${base}/firebase-app.js`),
         import(`${base}/firebase-auth.js`),
         import(`${base}/firebase-firestore.js`),
         import(`${base}/firebase-functions.js`),
         import(`${base}/firebase-storage.js`),
-        import(`${base}/firebase-app-check.js`),
-        import(`${base}/firebase-ai.js`)
+        import(`${base}/firebase-app-check.js`)
       ]);
 
       const app = appSdk.getApps().find((candidate) => candidate.options.projectId === firebaseConfig.projectId)
@@ -35,7 +34,7 @@ export async function getFirebase() {
         });
       }
 
-      return { app, auth, db, functions, storage, appSdk, authSdk, firestoreSdk, functionsSdk, storageSdk, aiSdk };
+      return { app, auth, db, functions, storage, appSdk, authSdk, firestoreSdk, functionsSdk, storageSdk };
     })();
   }
 
@@ -59,6 +58,7 @@ export function getFirebaseErrorMessage(error) {
     "auth/email-already-in-use": "An account already exists for that email.",
     "auth/invalid-credential": "The email or password is incorrect.",
     "auth/invalid-email": "Enter a valid email address.",
+    "auth/user-not-found": "If this address is registered, a password reset email has been sent.",
     "auth/weak-password": "Choose a stronger password with at least 6 characters.",
     "auth/too-many-requests": "Too many attempts. Please wait and try again.",
     "functions/failed-precondition": error?.message || "Checkout is not configured yet.",

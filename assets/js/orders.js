@@ -41,7 +41,7 @@ async function initialize() {
         <ul class="order-item-list">
           ${order.items.map((item) => `<li><span>${escapeHtml(item.name)} × ${item.quantity}</span><strong>${formatUGX(item.lineTotalUgx)}</strong></li>`).join("")}
         </ul>
-        ${order.paymentMethod === "mobile_money" && order.paymentStatus === "unpaid" ? `
+        ${order.paymentMethod === "mobile_money" && ["unpaid", "failed"].includes(order.paymentStatus) ? `
           <form class="reference-form" data-order-id="${escapeHtml(order.id)}">
             <p>Payment remains unpaid until the store owner verifies your reference.</p>
             <label><span>Transaction reference</span><input name="reference" maxlength="100" required></label>

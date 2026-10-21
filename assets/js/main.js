@@ -1,4 +1,4 @@
-import { formatUGX, filterProducts, addToCart, loadCatalog, escapeHtml } from "./store-data.js";
+import { formatUGX, filterProducts, addToCart, loadCatalog, escapeHtml, getCategories } from "./store-data.js";
 
 const productGrid = document.querySelector("#product-grid");
 const searchForm = document.querySelector("#search-form");
@@ -7,10 +7,11 @@ const sortSelect = document.querySelector("#product-sort");
 const resultMessage = document.querySelector("#results-message");
 const emptyState = document.querySelector("#empty-state");
 const toast = document.querySelector("#toast");
-const categoryButtons = [...document.querySelectorAll(".category-filter")];
+let categoryButtons = [...document.querySelectorAll(".category-filter")];
 let activeCategory = "All";
 let toastTimer;
 let catalog = [];
+let isSampleCatalog = true;
 
 function updateBagCount() {
   const bagCountNodes = document.querySelectorAll(".bag-count");
@@ -37,10 +38,10 @@ function renderProducts() {
         </div>
       </a>
       <div class="product-details">
-        <div class="product-category"><span>${escapeHtml(product.category)}</span><span class="sample-label">Sample listing</span></div>
+        <div class="product-category"><span>${escapeHtml(product.category)}</span><span class="sample-label">${isSampleCatalog ? "Sample listing" : product.stock > 0 ? "In stock" : "Out of stock"}</span></div>
         <h3><a href="./product.html?id=${encodeURIComponent(product.id)}">${escapeHtml(product.name)}</a></h3>
         <p class="product-description">${escapeHtml(product.description)}</p>
-        <p class="product-price">${formatUGX(product.price)} <span>sample price</span></p>
+        <p class="product-price">${formatUGX(product.price)} <span>${isSampleCatalog ? "sample price" : `${product.stock} available`}</span></p>
         <div class="product-actions">
           <a class="secondary-button" href="./product.html?id=${encodeURIComponent(product.id)}">View</a>
           <button class="primary-button" type="button" data-add-to-cart="${product.id}">Add to bag</button>
@@ -78,8 +79,34 @@ function showToast(message) {
   toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 3000);
 }
 
-for (const button of categoryButtons) {
-  button.addEventListener("click", () => selectCategory(button.dataset.category));
+function renderCategoryButtons() {
+  const container = document.querySelector(".category-filters");
+  const categories = getCategories(catalog);
+  container.replaceChildren();
+  const allButton = document.createElement("button");
+  allButton.className = "category-filter is-active";
+  allButton.type = "button";
+  allButton.dataset.category = "All";
+  allButton.setAttribute("aria-pressed", "true");
+  allButton.append("All items ");
+  const count = document.createElement("span");
+  count.className = "all-count";
+  count.textContent = String(catalog.length).padStart(2, "0");
+  allButton.append(count);
+  container.append(allButton);
+  for (const category of categories) {
+    const button = document.createElement("button");
+    button.className = "category-filter";
+    button.type = "button";
+    button.dataset.category = category;
+    button.setAttribute("aria-pressed", "false");
+    button.textContent = category;
+    container.append(button);
+  }
+  categoryButtons = [...container.querySelectorAll(".category-filter")];
+  categoryButtons.forEach((button) => {
+    button.addEventListener("click", () => selectCategory(button.dataset.category));
+  });
 }
 
 searchInput.addEventListener("input", renderProducts);
@@ -160,8 +187,22 @@ document.addEventListener("keydown", (event) => {
 
 document.querySelector("#current-year").textContent = new Date().getFullYear();
 updateBagCount();
-loadCatalog().then(({ products }) => {
+loadCatalog().then(({ products, isSample }) => {
   catalog = products;
+  isSampleCatalog = isSample;
+  renderCategoryButtons();
+  if (!isSample) {
+    document.querySelector("#store-mode").innerHTML = "<span>iSAX MARKET</span><span aria-hidden=\"true\">/</span> Live catalogue · secure checkout is server validated";
+    document.querySelector("#intro-description").textContent = "Explore the current iSAX Market catalogue, with prices and availability loaded from the store.";
+    document.querySelector("#preview-aside").innerHTML = '<span class="aside-rule"></span><span>Store catalogue<br><strong>Checkout availability depends on owner configuration.</strong></span>';
+    document.querySelector("#preview-note").hidden = true;
+    document.querySelector("#product-search").placeholder = "Search the catalogue";
+    document.querySelector('label[for="product-search"]').textContent = "Search products";
+    document.querySelector(".category-filters").setAttribute("aria-label", "Filter products by category");
+    document.querySelector("#collection-title").textContent = "Products";
+    document.querySelector("#empty-state h3").textContent = "No products match";
+    document.querySelector("#empty-state p").textContent = "Try another search or clear the current filters.";
+  }
   renderProducts();
 }).catch((error) => {
   console.error("Catalogue load failed:", error);

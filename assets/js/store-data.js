@@ -104,7 +104,7 @@ export async function loadCatalog() {
   ));
   const products = snapshot.docs.map((productDoc) => {
     const product = productDoc.data();
-    return {
+    const normalized = {
       id: productDoc.id,
       name: String(product.name || ""),
       category: String(product.category || ""),
@@ -116,7 +116,24 @@ export async function loadCatalog() {
       condition: String(product.condition || "New"),
       image: String(product.imageUrl || "")
     };
-  }).filter((product) => product.name && Number.isSafeInteger(product.price) && product.price >= 0);
+    if (!normalized.name
+        || !normalized.category
+        || !normalized.description
+        || !Number.isSafeInteger(normalized.price)
+        || normalized.price < 0
+        || !Number.isSafeInteger(normalized.stock)
+        || normalized.stock < 0) {
+      throw new Error(`Product ${productDoc.id} has invalid catalogue fields.`);
+    }
+    if (normalized.image) {
+      try {
+        if (new URL(normalized.image).protocol !== "https:") normalized.image = "";
+      } catch {
+        normalized.image = "";
+      }
+    }
+    return normalized;
+  });
 
   return { products, isSample: false };
 }
@@ -151,10 +168,24 @@ export function filterProducts(products, { query = "", category = "All", sort = 
     });
 }
 
+export function getCategories(products) {
+  return [...new Set(products.map((product) => product.category).filter(Boolean))]
+    .sort((first, second) => first.localeCompare(second));
+}
+
 export function getCart() {
   try {
     const raw = window.localStorage.getItem("isax-cart");
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item) =>
+      item
+      && typeof item.productId === "string"
+      && /^[a-zA-Z0-9_-]{1,100}$/.test(item.productId)
+      && Number.isSafeInteger(item.quantity)
+      && item.quantity > 0
+      && item.quantity <= 20
+    );
   } catch {
     return [];
   }
@@ -169,12 +200,13 @@ export function saveCart(cart) {
 }
 
 export function addToCart(productId, quantity = 1) {
+  if (typeof productId !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(productId)) return getCart();
   const cart = getCart();
-  const nextQuantity = Number(quantity) || 1;
+  const nextQuantity = Math.max(1, Math.min(20, Number(quantity) || 1));
   const existingIndex = cart.findIndex((item) => item.productId === productId);
 
   if (existingIndex >= 0) {
-    cart[existingIndex].quantity += nextQuantity;
+    cart[existingIndex].quantity = Math.min(20, cart[existingIndex].quantity + nextQuantity);
   } else {
     cart.push({ productId, quantity: nextQuantity });
   }
@@ -184,8 +216,9 @@ export function addToCart(productId, quantity = 1) {
 }
 
 export function updateCartItem(productId, quantity) {
+  if (typeof productId !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(productId)) return getCart();
   const cart = getCart();
-  const nextQuantity = Number(quantity) || 0;
+  const nextQuantity = Math.max(0, Math.min(20, Number(quantity) || 0));
   const filtered = cart
     .map((item) => (item.productId === productId ? { ...item, quantity: nextQuantity } : item))
     .filter((item) => item.quantity > 0);
@@ -195,6 +228,7 @@ export function updateCartItem(productId, quantity) {
 }
 
 export function removeCartItem(productId) {
+  if (typeof productId !== "string") return getCart();
   const filtered = getCart().filter((item) => item.productId !== productId);
   saveCart(filtered);
   return filtered;

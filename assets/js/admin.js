@@ -43,13 +43,14 @@ function renderDashboard(firebase, user, products, orders, payments, settings) {
 
   dashboardContent.innerHTML = `
     <p class="dashboard-note">Live Firestore records. Revenue counts only orders marked paid and excludes cancelled orders.</p>
+    <p class="dashboard-note">Order and payment counts and the paid total below are limited to the latest 50 orders.</p>
     <section class="stats-grid">
       <article class="panel stat-card"><p>Total products</p><strong>${products.length}</strong></article>
       <article class="panel stat-card"><p>Low stock</p><strong>${lowStock}</strong></article>
       <article class="panel stat-card"><p>Out of stock</p><strong>${outOfStock}</strong></article>
-      <article class="panel stat-card"><p>New orders</p><strong>${pendingOrders}</strong></article>
-      <article class="panel stat-card"><p>Pending payments</p><strong>${pendingPayments}</strong></article>
-      <article class="panel stat-card"><p>Confirmed payments</p><strong>${formatUGX(paidRevenue)}</strong></article>
+      <article class="panel stat-card"><p>New (latest 50)</p><strong>${pendingOrders}</strong></article>
+      <article class="panel stat-card"><p>Pending (latest 50)</p><strong>${pendingPayments}</strong></article>
+      <article class="panel stat-card"><p>Paid total (latest 50)</p><strong>${formatUGX(paidRevenue)}</strong></article>
     </section>
 
     <section class="panel admin-section">
@@ -319,18 +320,19 @@ async function initialize() {
       return;
     }
 
-    const { collection, doc, getDoc, getDocs } = firebase.firestoreSdk;
-    const [productsSnapshot, ordersSnapshot, paymentsSnapshot, settingsSnapshot] = await Promise.all([
+    const { collection, doc, getDoc, getDocs, limit, orderBy, query } = firebase.firestoreSdk;
+    const [productsSnapshot, ordersSnapshot, settingsSnapshot] = await Promise.all([
       getDocs(collection(firebase.db, "products")),
-      getDocs(collection(firebase.db, "orders")),
-      getDocs(collection(firebase.db, "payments")),
+      getDocs(query(collection(firebase.db, "orders"), orderBy("createdAt", "desc"), limit(50))),
       getDoc(doc(firebase.db, "settings", "public"))
     ]);
     const products = productsSnapshot.docs.map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }));
     const orders = ordersSnapshot.docs.map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }))
       .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-    const payments = paymentsSnapshot.docs.map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }));
-    renderDashboard(firebase, user, products, orders.slice(0, 50), payments, settingsSnapshot.exists() ? settingsSnapshot.data() : {});
+    const payments = (await Promise.all(orders.map((order) =>
+      getDoc(doc(firebase.db, "payments", order.id))
+    ))).filter((snapshot) => snapshot.exists()).map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }));
+    renderDashboard(firebase, user, products, orders, payments, settingsSnapshot.exists() ? settingsSnapshot.data() : {});
   } catch (error) {
     console.error("Owner dashboard load failed:", error);
     renderGuard("Dashboard unavailable.", getFirebaseErrorMessage(error), "../index.html", "Return to store");

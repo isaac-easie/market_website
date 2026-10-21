@@ -1,78 +1,104 @@
 # iSAX Market
 
-A single-store Ugandan e-commerce project, built with HTML, CSS, and vanilla JavaScript ES modules. The design is a foundation for a Firebase-backed application with a trusted backend for checkout and other sensitive operations.
+A single-store Ugandan retail storefront built with HTML, CSS, browser ES modules, Firebase Authentication, Cloud Firestore, Cloud Storage, Firebase AI Logic, and Firebase Cloud Functions.
 
-## Current status: Phase 2 scaffold
+## Current status
 
-This project now includes a responsive storefront, catalogue product detail pages, shopping bag and checkout flows, and a secure admin dashboard structure. It is still a staged project and not a live store until Firebase project settings, production rules, and backend services are configured and tested.
+The repository now contains a working integration implementation, but it is **not launch-ready until the owner configures and tests the Firebase project and business-specific settings**. No Firebase project, App Check site key, owner account, payment instructions, customer contact details, or payment-provider account were provided, so no external service has been configured or deployed from this workspace.
 
-The storefront includes search, category filters, sorting, mobile navigation, the theme toggle, product detail pages, cart persistence, checkout demo flows, and owner dashboard structure. Firebase, authentication, database, image storage, payments, and Gemini are not connected to a live backend yet, but the application is prepared for the next integration phase.
+Implemented:
 
-The current visual direction is deliberately retail-led: a compact utility header, short editorial introduction, direct catalogue controls, consistent image placeholders, and restrained paper, ink, green, and rust colours. It uses system fonts and no decorative product illustrations or unsupported social proof. Replace the labelled image placeholders with the store's own product photography when genuine listings are available.
+- Responsive storefront with sample catalogue fallback, live Firestore product reads, filters, sort, detail pages, and image upload support in the owner dashboard.
+- Firebase email/password customer registration, login, and password reset. Placeholder Firebase values do not create fake/demo accounts.
+- Owner dashboard requiring the server-issued `admin` custom claim. Product and store settings edits use Firestore rules; order status and manual payment review go through callable functions.
+- Server-side order creation: the browser submits product IDs and quantities only; the function reads authoritative product prices, checks availability, updates stock in a Firestore transaction, calculates UGX totals, and uses an idempotency key.
+- Manual mobile-money reference submission remains pending until an owner verifies it. Order/payment changes create audit records.
+- Firebase AI Logic Gemini assistant UI that uses live catalogue context only. It does not send the sample fallback catalogue to Gemini.
+- Firestore and Storage rules deny client order/payment writes and restrict privileged access to the server-issued owner claim.
 
-## Architecture
+Not implemented or not externally verified:
 
-- **Storefront:** static HTML/CSS and browser-native ES modules, no frontend framework or bundler.
-- **Identity and customer data (Phase 2):** Firebase Authentication and Firestore with owner-scoped security rules. The project includes configuration placeholders and demo-mode auth fallbacks until the real Firebase project is connected.
-- **Catalogue and images (Phase 3):** Firestore product records and Firebase Cloud Storage; privileged changes require server-managed administrator claims.
-- **Orders, inventory, payments (Phases 4–5):** trusted Cloud Functions validate prices and stock, create orders, request and verify payments, and record audit events. The browser is never authoritative for totals or payment confirmation.
-- **Shopping assistant (Phase 6):** Firebase AI Logic with App Check and verified catalogue context; AI is not a source of product, stock, or payment truth.
-- **Hosting (Phase 8):** Firebase Hosting or another suitable production host, after the project, rules, and required backend have been configured and tested.
+- Flutterwave/Pesapal or other online payment provider, webhook verification, refunds, or automated settlement.
+- Cross-device cart sync (the cart currently persists in this browser only).
+- Store-specific privacy/returns/fulfilment policy pages, genuine contact details, and delivery zones/fees beyond a single owner-entered delivery fee.
+- Live Firebase/Auth/Firestore/Storage/App Check/Gemini deployment or end-to-end tests against a real project.
 
-Initial structure:
-
-```text
-index.html
-assets/
-  css/styles.css
-  images/brand-mark.svg
-  images/favicon.svg
-  js/main.js
-functions/              # add with trusted-backend phase
-firestore.rules          # add with Firebase security phase
-storage.rules            # add with Firebase security phase
-firestore.indexes.json   # add as data queries are introduced
-```
-
-Backend and security files are intentionally not stubbed with insecure or nonfunctional rules. Add these alongside the features they protect.
+Do not use the sample products/prices for sales. The site must not be treated as production-ready until the Firebase setup and launch checklist below have been completed.
 
 ## Run locally
 
-Serve this directory over HTTP so the browser can load JavaScript modules. With Node.js installed:
+Serve the directory over HTTP (ES modules require an HTTP origin):
 
 ```sh
 python3 -m http.server 8000
 ```
 
-Then open http://localhost:8000 in a browser. No project build or package installation is required.
+Visit `http://localhost:8000`. Without Firebase settings, catalogue pages use explicitly labelled sample items; sign-in and checkout are unavailable, and no demo orders are created.
 
-## Firebase setup checklist
+Run the backend input-validation tests:
 
-1. Install Firebase CLI:
+```sh
+cd functions
+npm test
+```
+
+## Firebase project setup
+
+1. Create a Firebase project. Enable Authentication (Email/Password), Firestore, Storage, and Firebase AI Logic. Cloud Functions deployment requires a billing-enabled project.
+2. Install and sign in to the Firebase CLI, then select the real project:
    ```sh
    npm install -g firebase-tools
-   ```
-2. In the Firebase console, create a project and enable Authentication, Firestore, Storage, and Hosting.
-3. Replace the placeholder values in [assets/js/firebase-config.js](assets/js/firebase-config.js) with your project configuration.
-4. In Firebase Authentication, enable Email/Password sign-in.
-5. Configure Firestore and Storage rules using [firestore.rules](firestore.rules) and [storage.rules](storage.rules).
-6. Deploy the app with:
-   ```sh
    firebase login
    firebase use --add
-   firebase deploy
    ```
+   This replaces the placeholder project alias in `.firebaserc`.
+3. Copy the Web App config values into `assets/js/firebase-config.js`. Client config is public; security comes from rules, App Check, and server authorization.
+4. Register a web app in Firebase App Check using reCAPTCHA v3, then set the site's public reCAPTCHA key in `appCheckSiteKey` in `assets/js/firebase-config.js`. Configure the local/deployed domains in App Check. Enable App Check enforcement for the callable functions and relevant Firebase services only after the client has been configured.
+5. Install backend dependencies and deploy:
+   ```sh
+   cd functions
+   npm install
+   cd ..
+   firebase deploy --only firestore:rules,firestore:indexes,storage,functions,hosting
+   ```
+6. Register a customer account through the website. Provision the store owner out of band using an operator identity with Firebase Admin permissions (Application Default Credentials), never from the browser:
+   ```sh
+   cd functions
+   gcloud auth application-default login
+   GCLOUD_PROJECT=YOUR_PROJECT_ID node scripts/set-admin-claim.cjs owner@example.com true
+   ```
+   The owner must sign out and back in to refresh the claim. To remove access, pass `false`.
+7. Sign in with the owner account at `/admin/`. Add real product records and images. Configure checkout settings there only after confirming actual fulfilment charges, payment methods, and mobile-money instructions with the business owner.
+8. Enable Firebase AI Logic and App Check/usage controls in the Firebase console. Test the assistant only with the live Firestore catalogue. Model availability and cost depend on the selected Firebase project and region.
 
-## Phase 1 checks
+Do not commit service-account JSON or provider secrets. The owner-claim script uses local Application Default Credentials and should only be run by a trusted operator.
 
-- Open the homepage on desktop and mobile widths.
-- Search listings; try category filters and each sort option.
-- Toggle the theme, reload, and check that preference is retained where browser storage is available.
-- Open and close the mobile navigation, including with Escape, and open/close the assistant preview.
-- Confirm that preview labels are visible and no real checkout or contact details are implied.
+## Firestore document shapes
 
-## Before launch
+- `users/{uid}`: `{ email, name, role: "customer", createdAt, updatedAt }`. Customers can update only their own display name; the role is immutable to clients.
+- `products/{productId}`: `{ name, description, category, sku, condition, priceUgx, stock, isActive, featured, imageUrl, createdAt, updatedAt }`. Only owners can write.
+- `settings/public`: `{ checkoutEnabled, allowedPaymentMethods, deliveryFeeUgx, mobileMoneyInstructions, updatedAt, updatedBy }`. This document is publicly readable, so only put customer-facing instructions here.
+- `orders/{orderId}`: server-created immutable item/price snapshots plus customer and fulfilment data, UGX totals, order status, and payment status. A callable function creates/updates orders; clients can only read their own.
+- `checkoutRequests/{uid_key}`: server-only idempotency mapping.
+- `payments/{orderId}` and `paymentReferences/{referenceHash}`: server-only manual payment review and duplicate-reference records.
+- `auditLogs/{logId}`: server-created owner-readable audit entries.
 
-The store owner must supply genuine contact details, approved payment methods and instructions, delivery/collection terms, privacy and returns policies, Firebase project settings, and (if enabled) approved payment-provider credentials. Never place service-account credentials, payment secrets, or a raw Gemini Developer API key in browser code or source control.
+The current static rules do not permit client-side cart documents. Cart contents stay in browser local storage and are re-priced and re-validated at checkout. Firestore automatic indexes cover the current catalogue and customer-order queries; owner order history uses the built-in `createdAt` index.
 
-Proceed phase by phase, adding security rules with the data and operations they protect. The store is not ready for production until its external services are configured, tested, and deployed.
+## Manual payments
+
+The supported manual methods are cash on delivery, cash on collection, and mobile money with owner verification. Only methods selected in the owner dashboard are shown. Mobile-money instructions are public and must be genuine. Entering a transaction reference never marks an order paid; an authorized owner must check the real transaction and verify or reject it from the dashboard.
+
+No online payment provider is wired. Do not advertise online card/mobile payments as functional. A provider integration requires approved merchant credentials, documented checkout APIs, server-side amount/currency verification, webhook signature verification, duplicate-event protection, and live test transactions before it can be enabled.
+
+## Deployment safety and launch checklist
+
+- Replace `.firebaserc` with the real Firebase project, configure the web app and App Check, and test Auth.
+- Deploy the provided Firestore/Storage rules and Functions; verify unauthenticated and customer writes to order/payment documents are denied.
+- Provision only the intended owner custom claim, test access removal, and review the Firebase audit log.
+- Create real products and confirm stock/price changes and concurrent checkout behavior in the emulator/test project.
+- Configure actual store delivery/collection terms, mobile-money instructions, privacy/returns policy, and contact information.
+- Verify manual payment on real provider records. Implement and test a provider webhook before enabling any online payments.
+- Configure Firebase AI Logic quotas and App Check; monitor usage/cost and ensure recommendations use only the live catalogue.
+- Test desktop/mobile layouts, customer isolation, checkout retries, stock limits, cancellation stock restoration, payment review, and hosting refresh behavior.
+- Back up Firestore and document who can access the Firebase project before commercial launch.

@@ -2,8 +2,21 @@ import { formatUGX, getCart, getCartItems, getCartTotals, saveCart, loadCatalog,
 import { callFunction, getFirebase, getFirebaseErrorMessage } from "./firebase-client.js";
 
 const checkoutContent = document.querySelector("#checkout-content");
-let checkoutKey = crypto.randomUUID();
-let storeSettings;
+
+function checkoutIdempotencyKey(items) {
+  const fingerprint = JSON.stringify([...items]
+    .map((item) => ({ productId: item.productId, quantity: item.quantity }))
+    .sort((first, second) => first.productId.localeCompare(second.productId)));
+  try {
+    const stored = JSON.parse(localStorage.getItem("isax-checkout-request") || "null");
+    if (stored?.fingerprint === fingerprint && typeof stored.key === "string") return stored.key;
+    const key = crypto.randomUUID();
+    localStorage.setItem("isax-checkout-request", JSON.stringify({ key, fingerprint }));
+    return key;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
 
 function updateBagCount() {
   const items = getCart();
@@ -137,7 +150,7 @@ function renderCheckout(user, settings, products) {
       const currentItems = getCart();
       if (!currentItems.length) throw new Error("Your cart is empty.");
       const result = await callFunction("createOrder", {
-        idempotencyKey: checkoutKey,
+        idempotencyKey: checkoutIdempotencyKey(currentItems),
         name: form.elements.name.value,
         address: form.elements.address.value,
         fulfilmentMethod: form.elements.fulfilmentMethod.value,
@@ -145,7 +158,11 @@ function renderCheckout(user, settings, products) {
         items: currentItems
       });
       saveCart([]);
-      checkoutKey = crypto.randomUUID();
+      try {
+        localStorage.removeItem("isax-checkout-request");
+      } catch {
+        // The idempotency key is best-effort persisted; the server still protects retries while it is available.
+      }
       updateBagCount();
       renderOrderSuccess(result, paymentSelect.value, mobileInstructions);
     } catch (error) {
@@ -212,9 +229,9 @@ async function initialize() {
     const settingsSnapshot = await firebase.firestoreSdk.getDoc(
       firebase.firestoreSdk.doc(firebase.db, "settings", "public")
     );
-    storeSettings = settingsSnapshot.exists() ? settingsSnapshot.data() : {};
+    const settings = settingsSnapshot.exists() ? settingsSnapshot.data() : {};
     const { products } = await loadCatalog();
-    renderCheckout(user, storeSettings, products);
+    renderCheckout(user, settings, products);
   } catch (error) {
     renderMessage("Checkout is unavailable.", getFirebaseErrorMessage(error), "./products.html");
   }
