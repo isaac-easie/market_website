@@ -4,7 +4,7 @@ A single-store Ugandan retail storefront built with HTML, CSS, browser ES module
 
 ## Current status
 
-The repository now contains a working integration implementation, but it is **not launch-ready until the owner configures and tests the Firebase project and business-specific settings**. No Firebase project, App Check site key, owner account, payment instructions, customer contact details, or payment-provider account were provided, so no external service has been configured or deployed from this workspace.
+The repository contains the Firebase integration implementation, but it is **not launch-ready until the owner configures and tests the Firebase web app and business-specific settings**. The Firebase project ID is `safa-africa`; the web-app configuration and App Check site key have not been provided in this workspace. No external service has been configured or deployed from this workspace.
 
 Implemented:
 
@@ -44,23 +44,20 @@ npm test
 
 ## Firebase project setup
 
-1. Create a Firebase project. Enable Authentication (Email/Password), Firestore, Storage, and Firebase AI Logic. Cloud Functions deployment requires a billing-enabled project.
-2. Install and sign in to the Firebase CLI, then select the real project:
+1. In the existing `safa-africa` project, enable Authentication (Email/Password), Firestore in `africa-south1`, and Storage if those features are required. Firebase AI Logic is optional and is not needed for catalogue, accounts, or checkout. Cloud Functions deployment requires a billing-enabled project.
+2. Install and sign in to the Firebase CLI. The repository's `.firebaserc` selects `safa-africa` by default:
    ```sh
    npm install -g firebase-tools
    firebase login
-   firebase use --add
    ```
-   This replaces the placeholder project alias in `.firebaserc`.
-3. Copy the Web App config values into `assets/js/firebase-config.js`. Client config is public; security comes from rules, App Check, and server authorization.
+3. In Firebase Console, open **Project settings → General → Your apps**, select the registered web app, and copy its configuration into the matching fields in `assets/js/firebase-config.js`: `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, and `appId`. Confirm `projectId` is `safa-africa`. These web-app settings are public client configuration, not a service-account credential. The app intentionally remains in sample mode until all six values are present and the project ID matches.
 4. Register a web app in Firebase App Check using reCAPTCHA v3, then set the site's public reCAPTCHA key in `appCheckSiteKey` in `assets/js/firebase-config.js`. Configure the local/deployed domains in App Check. Enable App Check enforcement for the callable functions and relevant Firebase services only after the client has been configured.
-5. Install backend dependencies and deploy:
+5. Install backend dependencies. Review the deployment targets and rules before deploying; deployment is a separate, explicit operation:
    ```sh
    cd functions
    npm install
-   cd ..
-   firebase deploy --only firestore:rules,firestore:indexes,storage,functions,hosting
    ```
+   Cloud Functions and the web client are configured for `africa-south1` to colocate calls with Firestore. The provided functions require App Check. Do not deploy until the configured web app, function region, security rules, and Firebase project have been reviewed.
 6. Register a customer account through the website. Provision the store owner out of band using an operator identity with Firebase Admin permissions (Application Default Credentials), never from the browser:
    ```sh
    cd functions
@@ -93,7 +90,7 @@ No online payment provider is wired. Do not advertise online card/mobile payment
 
 ## Deployment safety and launch checklist
 
-- Replace `.firebaserc` with the real Firebase project, configure the web app and App Check, and test Auth.
+- Configure all six Web App values and the App Check site key locally; confirm `.firebaserc` targets `safa-africa`, then test Auth against an approved test environment.
 - Deploy the provided Firestore/Storage rules and Functions; verify unauthenticated and customer writes to order/payment documents are denied.
 - Provision only the intended owner custom claim, test access removal, and review the Firebase audit log.
 - Create real products and confirm stock/price changes and concurrent checkout behavior in the emulator/test project.

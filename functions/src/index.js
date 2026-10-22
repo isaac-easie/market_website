@@ -19,7 +19,7 @@ function requireOwner(request) {
 }
 
 function callableOptions() {
-  return { enforceAppCheck: true, region: "europe-west1" };
+  return { enforceAppCheck: true, region: "africa-south1" };
 }
 
 exports.createOrder = onCall(callableOptions(), async (request) => {

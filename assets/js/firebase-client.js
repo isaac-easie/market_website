@@ -24,7 +24,7 @@ export async function getFirebase() {
         || appSdk.initializeApp(firebaseConfig);
       const auth = authSdk.getAuth(app);
       const db = firestoreSdk.getFirestore(app);
-      const functions = functionsSdk.getFunctions(app, "europe-west1");
+      const functions = functionsSdk.getFunctions(app, "africa-south1");
       const storage = storageSdk.getStorage(app);
 
       if (appCheckSiteKey) {
