@@ -192,8 +192,8 @@ loadCatalog().then(({ products, isSample }) => {
   isSampleCatalog = isSample;
   renderCategoryButtons();
   if (!isSample) {
-    document.querySelector("#store-mode").innerHTML = "<span>iSAX MARKET</span><span aria-hidden=\"true\">/</span> Live catalogue · secure checkout is server validated";
-    document.querySelector("#intro-description").textContent = "Explore the current iSAX Market catalogue, with prices and availability loaded from the store.";
+    document.querySelector("#store-mode").innerHTML = "<span>SAFA AFRICA</span><span aria-hidden=\"true\">/</span> Live catalogue · secure checkout is server validated";
+    document.querySelector("#intro-description").textContent = "Explore the current Safa Africa catalogue, with prices and availability loaded from the store.";
     document.querySelector("#preview-aside").innerHTML = '<span class="aside-rule"></span><span>Store catalogue<br><strong>Checkout availability depends on owner configuration.</strong></span>';
     document.querySelector("#preview-note").hidden = true;
     document.querySelector("#product-search").placeholder = "Search the catalogue";

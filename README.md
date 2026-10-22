@@ -1,4 +1,4 @@
-# iSAX Market
+# Safa Africa
 
 A single-store Ugandan retail storefront built with HTML, CSS, browser ES modules, Firebase Authentication, Cloud Firestore, Cloud Storage, Firebase AI Logic, and Firebase Cloud Functions.
 
