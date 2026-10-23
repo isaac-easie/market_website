@@ -79,7 +79,9 @@ function renderDashboard(firebase, user, products, orders, payments, settings) {
         <label><span>Stock</span><input name="stock" type="number" min="0" step="1" required></label>
         <label><span>Condition</span><input name="condition" maxlength="40" value="New"></label>
         <label class="wide-field"><span>Description</span><textarea name="description" rows="3" maxlength="2000" required></textarea></label>
-        <label class="wide-field"><span>Product image (JPEG, PNG, WebP; max 5 MB)</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp"></label>
+
+        <label class="wide-field"><span>Product image URL (optional)</span> <input name="imageUrl" type="url" placeholder="https://example.com/product-image.jpg"></label>
+        
         <label class="checkbox-field"><input name="isActive" type="checkbox" checked><span>Active listing</span></label>
         <label class="checkbox-field"><input name="featured" type="checkbox"><span>Featured</span></label>
         <p id="product-form-message" class="form-message wide-field" role="status" hidden></p>
@@ -114,9 +116,9 @@ function renderDashboard(firebase, user, products, orders, payments, settings) {
           <thead><tr><th>Reference</th><th>Customer</th><th>Total</th><th>Order</th><th>Payment</th><th>Payment reference</th><th>Actions</th></tr></thead>
           <tbody>
             ${orders.length ? orders.map((order) => {
-              const payment = payments.find((item) => item.id === order.id);
-              const choices = transitions[order.orderStatus] || [];
-              return `<tr>
+    const payment = payments.find((item) => item.id === order.id);
+    const choices = transitions[order.orderStatus] || [];
+    return `<tr>
                 <td>${escapeHtml(order.id)}</td>
                 <td>${escapeHtml(order.customerName)}<br><small>${escapeHtml(order.customerEmail)}</small></td>
                 <td>${formatUGX(order.totalUgx)}</td>
@@ -128,7 +130,7 @@ function renderDashboard(firebase, user, products, orders, payments, settings) {
                   ${order.paymentStatus === "pending_verification" ? `<button class="text-button verify-payment" type="button" data-order-id="${escapeHtml(order.id)}" data-verified="true">Verify</button><button class="text-button reject-payment" type="button" data-order-id="${escapeHtml(order.id)}">Reject</button>` : ""}
                 </td>
               </tr>`;
-            }).join("") : '<tr><td colspan="7">No orders recorded.</td></tr>'}
+  }).join("") : '<tr><td colspan="7">No orders recorded.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -165,7 +167,7 @@ function renderDashboard(firebase, user, products, orders, payments, settings) {
         throw new Error("Select at least one payment method before enabling checkout.");
       }
       if (settingsFields.checkoutEnabled.checked
-          && (!Number.isSafeInteger(deliveryFeeUgx) || deliveryFeeUgx < 0)) {
+        && (!Number.isSafeInteger(deliveryFeeUgx) || deliveryFeeUgx < 0)) {
         throw new Error("Set a whole-number delivery fee before enabling checkout.");
       }
       if (settingsFields.mobileMoney.checked && !mobileMoneyInstructions) {
@@ -201,7 +203,7 @@ function renderDashboard(firebase, user, products, orders, payments, settings) {
       const priceUgx = Number(fields.priceUgx.value);
       const stock = Number(fields.stock.value);
       if (!name || !category || !Number.isSafeInteger(priceUgx) || priceUgx < 0
-          || !Number.isSafeInteger(stock) || stock < 0) {
+        || !Number.isSafeInteger(stock) || stock < 0) {
         throw new Error("Check product name, category, whole-number price, and stock.");
       }
 

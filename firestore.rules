@@ -37,7 +37,7 @@ service cloud.firestore {
     }
 
     match /products/{productId} {
-      allow get, list: if resource.data.isActive == true;
+      allow get, list: if isOwner() || resource.data.isActive == true;
       allow create, update, delete: if isOwner();
     }
 
