@@ -8,7 +8,7 @@ export const firebaseConfig = {
   measurementId: "G-KDS32L5B7N"
 };
 
-export const appCheckSiteKey = "";
+export const appCheckSiteKey = "6LcBdf0tAAAAAHw0viTKwyQHOGuyGxh7cwNNV3uI";
 
 export function hasFirebaseConfig() {
   return firebaseConfig.projectId === "safa-africa"

@@ -29,7 +29,7 @@ export async function getFirebase() {
 
       if (appCheckSiteKey) {
         appCheckSdk.initializeAppCheck(app, {
-          provider: new appCheckSdk.ReCaptchaV3Provider(appCheckSiteKey),
+          provider: new appCheckSdk.ReCaptchaEnterpriseProvider(appCheckSiteKey),
           isTokenAutoRefreshEnabled: true
         });
       }

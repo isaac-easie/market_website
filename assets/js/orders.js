@@ -1,7 +1,26 @@
 import { formatUGX, escapeHtml } from "./store-data.js";
 import { getFirebase, callFunction, getFirebaseErrorMessage } from "./firebase-client.js";
+import { iSaxAuth } from "./auth.js";
+
 
 const ordersContent = document.querySelector("#orders-content");
+const logoutButton = document.querySelector("#logout-button");
+const auth = new iSaxAuth();
+
+logoutButton.addEventListener("click", async () => {
+  logoutButton.disabled = true;
+  logoutButton.textContent = "Logging out...";
+
+  const result = await auth.signOut();
+
+  if (result.ok) {
+    window.location.href = "./login.html";
+  } else {
+    logoutButton.disabled = false;
+    logoutButton.textContent = "Log out";
+    alert(result.message);
+  }
+});
 
 async function initialize() {
   document.querySelector("#current-year").textContent = new Date().getFullYear();
@@ -9,6 +28,9 @@ async function initialize() {
     const firebase = await getFirebase();
     await firebase.auth.authStateReady();
     const user = firebase.auth.currentUser;
+    if (user) {
+      logoutButton.hidden = false;
+    }
     if (!user) {
       ordersContent.innerHTML = '<section class="panel empty-panel"><h2>Sign in to view your orders.</h2><a class="primary-button" href="./login.html?next=orders.html">Sign in</a></section>';
       return;
