@@ -208,16 +208,7 @@ function renderDashboard(firebase, user, products, orders, payments, settings) {
       }
 
       const id = fields.productId.value || firebase.firestoreSdk.doc(firebase.firestoreSdk.collection(firebase.db, "products")).id;
-      let imageUrl = products.find((product) => product.id === id)?.imageUrl || "";
-      const imageFile = fields.image.files[0];
-      if (imageFile) {
-        if (!["image/jpeg", "image/png", "image/webp"].includes(imageFile.type) || imageFile.size >= 5 * 1024 * 1024) {
-          throw new Error("Choose a JPEG, PNG, or WebP image under 5 MB.");
-        }
-        const imageRef = firebase.storageSdk.ref(firebase.storage, `products/${id}/${crypto.randomUUID()}`);
-        await firebase.storageSdk.uploadBytes(imageRef, imageFile, { contentType: imageFile.type });
-        imageUrl = await firebase.storageSdk.getDownloadURL(imageRef);
-      }
+      const imageUrl = fields.imageUrl.value.trim();
 
       const productData = {
         name,
