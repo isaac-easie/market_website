@@ -86,7 +86,7 @@ function renderMessage(
   `;
 }
 
-function renderCheckout(user, settings, products) {
+function renderCheckout(user, settings, products, demoMode = false) {
   const totals = getCartTotals(products);
 
   if (!totals.itemCount) {
@@ -94,13 +94,15 @@ function renderCheckout(user, settings, products) {
     return;
   }
 
-  const paymentMethods = Array.isArray(settings.allowedPaymentMethods)
-    ? settings.allowedPaymentMethods.filter((method) =>
-      ["cash_on_delivery", "cash_on_collection", "mobile_money"].includes(method)
-    )
-    : [];
+  const paymentMethods = demoMode
+    ? ["cash_on_delivery", "cash_on_collection", "mobile_money"]
+    : Array.isArray(settings.allowedPaymentMethods)
+      ? settings.allowedPaymentMethods.filter((method) =>
+        ["cash_on_delivery", "cash_on_collection", "mobile_money"].includes(method)
+      )
+      : [];
 
-  if (settings.checkoutEnabled !== true || paymentMethods.length === 0) {
+  if ((!demoMode && settings.checkoutEnabled !== true) || paymentMethods.length === 0) {
     renderMessage(
       "Checkout is not enabled yet.",
       "The store owner must configure checkout and available payment methods."
@@ -262,6 +264,21 @@ function renderCheckout(user, settings, products) {
         throw new Error("Your cart is empty.");
       }
 
+      if (demoMode) {
+        const demoTotals = getCartTotals(products);
+        const deliveryFee = form.elements.fulfilmentMethod.value === "delivery"
+          ? estimatedDeliveryFee
+          : 0;
+
+        saveCart([]);
+        updateBagCount();
+        renderDemoOrderSuccess({
+          orderId: "DEMO-" + Date.now().toString(36).toUpperCase(),
+          totalUgx: demoTotals.subtotal + deliveryFee
+        });
+        return;
+      }
+
       const result = await callFunction("createOrder", {
         idempotencyKey: checkoutIdempotencyKey(currentItems),
         name: form.elements.name.value,
@@ -287,6 +304,20 @@ function renderCheckout(user, settings, products) {
       submitButton.disabled = false;
     }
   });
+}
+
+function renderDemoOrderSuccess(order) {
+  checkoutContent.innerHTML = `
+    <section class="panel success-panel">
+      <p class="eyebrow">DEMO ORDER — NOT REAL</p>
+      <h2>Checkout demonstration complete.</h2>
+      <p>This is a simulated order for website demonstration only.</p>
+      <p>Demo reference: <strong>${escapeHtml(order.orderId)}</strong></p>
+      <p>Estimated demo total: <strong>${formatUGX(order.totalUgx)}</strong></p>
+      <p><strong>No real order was submitted. No payment was taken or verified.</strong></p>
+      <a class="primary-button" href="./products.html">Continue shopping</a>
+    </section>
+  `;
 }
 
 function renderOrderSuccess(order, paymentMethod, mobileInstructions) {
@@ -353,7 +384,25 @@ async function initialize() {
 
   updateBagCount();
 
+  const demoMode = new URLSearchParams(window.location.search).get("demo") === "1";
+
   try {
+    if (demoMode) {
+      const { products } = await loadCatalog();
+      renderCheckout(
+        { displayName: "Demo visitor", email: "demo@example.com" },
+        {
+          checkoutEnabled: true,
+          allowedPaymentMethods: ["cash_on_delivery", "cash_on_collection", "mobile_money"],
+          deliveryFeeUgx: 2500,
+          mobileMoneyInstructions: "DEMO ONLY — do not send money."
+        },
+        products,
+        true
+      );
+      return;
+    }
+
     const firebase = await getFirebase();
 
     await firebase.auth.authStateReady();
